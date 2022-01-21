@@ -6,3 +6,5 @@
   * [Same as above, generalized view on NVidia's site](https://developer.nvidia.com/blog/building-multi-camera-media-server-ai-processing-jetson/)
 
 * [TX1 GStreamer Reference](https://developer.ridgerun.com/wiki/index.php?title=Gstreamer_pipelines_for_Jetson_TX1#nvcamerasrc)
+
+* [NVidia Multimedia API Reference Docs](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/multimedia.html)
