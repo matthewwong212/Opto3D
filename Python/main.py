@@ -6,6 +6,7 @@
 #  https://www.youtube.com/watch?v=fs_Uw4qL2O8
 
 from sre_constants import SUCCESS
+import jetson.utils
 import numpy as np
 import cv2
 
@@ -75,6 +76,7 @@ def display(window, output):
 capture = cv2.VideoCapture(VIDEO)
 while(capture.isOpened()):
     success, frame = capture.read()
+    frame=cudaFromNumpy(frame)
     if success:
         num_rows, num_cols, num_ch = np.shape(frame)
         cols = int(num_cols / 2)
