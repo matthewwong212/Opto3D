@@ -31,6 +31,9 @@ IMCORR_MODE = 0
 VIDEO_LEFT = 'left_camera.mp4'
 VIDEO_RIGHT = 'right_camera.mp4'
 
+# DEBUG MESSAGES
+verbose = False
+
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
 VIDEO = 'city_video_1080p.mp4'
@@ -40,17 +43,20 @@ VIDEO = 'city_video_1080p.mp4'
 
 
 from sre_constants import SUCCESS
-import numpy as cp # <----------------------------------------	Bug here: cupy or numpy
+import cupy as cp # <----------------------------------------	Bug here: cupy or numpy
+import sys
+sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
 import cv2
 
 # Place odd rows from left above even rows from right
 def top_bottom(left_in, right_in, pol):
-    print('Made it to top-bottom')
+    if verbose: print('Made it to top-bottom')
     num_rows, num_cols, num_ch = cp.shape(left_in)
     rows = int(num_rows / 2)
-    print('Before CuPy')
+    if verbose: print('Before CuPy')
     out = cp.zeros_like(left_in) # <--------------------------	Bug here: cupy version (need 10.2)
-    print('Splitting...')
+    if verbose: print('Splitting...')
+    if verbose: print(type(left_in))
     if pol:
         # Polarity is swapped
         out[0:rows,:] = right_in[::2,:]
@@ -59,7 +65,7 @@ def top_bottom(left_in, right_in, pol):
         # Default polarity
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
-    print('Ready to display')
+    if verbose: print('Ready to display')
     display('Top-bottom', out)
 
 # Side-by-side optional
@@ -93,10 +99,10 @@ def display(window, output):
     #cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Result 0 -- Unmodified output (Default)
-    # cp_out = cp.uint8(output.get())         # For CuPy, Comment out for NumPy
-    cp_out = cp.uint8(output)               # For NumPy, Comment out for CuPy
+    cp_out = cp.uint8(output.get())         # For CuPy, Comment out for NumPy
+    #cp_out = cp.uint8(output)               # For NumPy, Comment out for CuPy
     result = cp_out[:, :, [0, 1, 2]]
-    print('Attempting to display...')
+    if verbose: print('Attempting to display...')
 
     # Result 1 -- Sepia toned output
     if IMCORR_MODE==1:
@@ -123,7 +129,7 @@ def display(window, output):
     if IMCORR_MODE==3:
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
-    print('Frame displayed')
+    if verbose: print('Frame displayed')
     cv2.imshow(window, result)
 
 
@@ -132,30 +138,34 @@ def display(window, output):
 
 # Execution continues here
 L_capture = cv2.VideoCapture(VIDEO_LEFT)
-print('Reading first video')
+if verbose: print('Reading first video')
 R_capture = cv2.VideoCapture(VIDEO_RIGHT)
-print('Reading second video')
+if verbose: print('Reading second video')
 while(L_capture.isOpened() and R_capture.isOpened()):
-    print('Capture is open')
+    if verbose: print('Capture is open')
     L_success, L_frame = L_capture.read()
     R_success, R_frame = R_capture.read()
     if L_success and R_success:
-        print('Success')
+        if verbose: print('Success')
         num_L_rows, num_L_cols, num_ch = cp.shape(L_frame)
         num_R_rows, num_R_cols, num_ch = cp.shape(R_frame)
+        
+        # Read into CuPY (Comment out block when using NumPy)
+        L_frame = cp.asarray(L_frame)
+        R_frame = cp.asarray(R_frame)
         #cols = int(num_cols / 2)
         # Mode select
         if MODE == 1:
-            print('Left mono/2D')
+            if verbose: print('Left mono/2D')
             display('Left eye monoscopic', L_frame[:,:])
         elif MODE == 2:
-            print('Right mono/2D')
+            if verbose: print('Right mono/2D')
             display('Right eye monoscopic', R_frame[:,:])
         elif MODE == 3:
-            print('Top Bottom (3D)')
+            if verbose: print('Top Bottom (3D)')
             top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
         elif MODE == 4:
-            print('Interlaced (3D)')
+            if verbose: print('Interlaced (3D)')
             row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY)
         else:
             # Previously side-by-side (time permitting)
