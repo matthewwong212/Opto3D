@@ -122,10 +122,10 @@ VIDEO_RIGHT = args.rightCamera
 if args.verbose:
     if args.verbose == "True":
         print("Showing debugging print statements")
-        verbose = True
+        VERBOSE = True
     else:
         print("Debugging print statements disabled")
-        verbose = False
+        VERBOSE = False
 
 if args.mode:
     if (args.mode == 1):
