@@ -34,7 +34,7 @@ VIDEO_RIGHT = 'right_camera.mp4'
 VERBOSE = False
 
 # Set CuPy or NumPy Execution. Internal testing only.
-use_cupy = True
+USE_CUPY = True
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
@@ -46,7 +46,7 @@ import sys
 sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
 import cv2
 import argparse_file
-if use_cupy:
+if USE_CUPY:
     import cupy as np
 else:
     import numpy as np
@@ -161,7 +161,7 @@ def display(window, output):
 
     # Result 0 -- Unmodified output (Default)
     # Differing lines for CuPy vs NumPy
-    if use_cupy:
+    if USE_CUPY:
         np_out = np.uint8(output.get())
     else:
         np_out = np.uint8(output)
