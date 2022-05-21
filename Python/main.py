@@ -51,61 +51,63 @@ if use_cupy:
 else:
     import numpy as np
 
-# Gets parsed command line arguments from argparse_file
-parser = argparse_file.create_parser()
-args = parser.parse_args()
 
-# Set video sources:
-VIDEO_LEFT = args.leftCamera
-VIDEO_RIGHT = args.rightCamera
+def parse_cmd_args():
+    # Gets parsed command line arguments from argparse_file
+    parser = argparse_file.create_parser()
+    args = parser.parse_args()
 
-# Set debugging messages
-if args.verbose:
-    if args.verbose == "True":
-        print("Showing debugging print statements")
-        VERBOSE = True
-    else:
-        print("Debugging print statements disabled")
-        VERBOSE = False
+    # Set video sources:
+    VIDEO_LEFT = args.leftCamera
+    VIDEO_RIGHT = args.rightCamera
 
-# Set chosen mode
-if args.mode:
-    if (args.mode == 1):
-        print("Mode set to Left Camera")
-    elif (args.mode == 2):
-        print("Mode set to Right Camera")
-    elif (args.mode == 3):
-        print("Mode set to Top-Bottom")
-    elif (args.mode == 4):
-        print("Mode set to Row-Interleaved")
+    # Set debugging messages
+    if args.verbose:
+        if args.verbose == "True":
+            print("Showing debugging print statements")
+            VERBOSE = True
+        else:
+            print("Debugging print statements disabled")
+            VERBOSE = False
 
-    MODE = args.mode
+    # Set chosen mode
+    if args.mode:
+        if (args.mode == 1):
+            print("Mode set to Left Camera")
+        elif (args.mode == 2):
+            print("Mode set to Right Camera")
+        elif (args.mode == 3):
+            print("Mode set to Top-Bottom")
+        elif (args.mode == 4):
+            print("Mode set to Row-Interleaved")
 
-# Set polarity.  Argument passed as string, since options are 0 or 1.
-if args.polarity:
-    if (args.polarity == "0"):
-        print("Default polarity")
-    elif (args.polarity == "1"):
-        print("Swapped polarity")
+        MODE = args.mode
 
-    POLARITY = int(args.polarity)
+    # Set polarity.  Argument passed as string, since options are 0 or 1.
+    if args.polarity:
+        if (args.polarity == "0"):
+            print("Default polarity")
+        elif (args.polarity == "1"):
+            print("Swapped polarity")
 
-# Set image correction mode.  Argument passed as string, since options include 0
-if args.imageCorrection:
-    if (args.imageCorrection == "0"):
-        print("Unaltered image")
-    elif (args.imageCorrection == "1"):
-        print("Image in Sepia")
-    elif(args.imageCorrection == "2"):
-        print("Saturation Adjusted")
+        POLARITY = int(args.polarity)
 
-    IMCORR_MODE = int(args.imageCorrection)
+    # Set image correction mode.  Argument passed as string, since options include 0
+    if args.imageCorrection:
+        if (args.imageCorrection == "0"):
+            print("Unaltered image")
+        elif (args.imageCorrection == "1"):
+            print("Image in Sepia")
+        elif(args.imageCorrection == "2"):
+            print("Saturation Adjusted")
 
-# Set saturation scale.  Argument passed as string, since 0 option is possible
-if args.saturationScale:
-    print("Saturation scale set to: ", args.saturationScale)
+        IMCORR_MODE = int(args.imageCorrection)
 
-    SAT_SCALE = float(args.saturationScale)
+    # Set saturation scale.  Argument passed as string, since 0 option is possible
+    if args.saturationScale:
+        print("Saturation scale set to: ", args.saturationScale)
+
+        SAT_SCALE = float(args.saturationScale)
 
 
 # BEGIN MAIN EXECUTION
@@ -151,7 +153,7 @@ def original(left_in, right_in, pol):
         out = np.hstack((left_in, right_in))
     display('Original (Side-by-side)', out)
 
-
+# Main display execution
 def display(window, output):
     # Fullscreen options for testing
     #cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
@@ -197,50 +199,54 @@ def display(window, output):
 
 
 
-
-
-# Execution continues here
-L_capture = cv2.VideoCapture(VIDEO_LEFT)
-if verbose: print('Reading first video')
-R_capture = cv2.VideoCapture(VIDEO_RIGHT)
-if verbose: print('Reading second video')
-while(L_capture.isOpened() and R_capture.isOpened()):
-    if verbose: print('Capture is open')
-    L_success, L_frame = L_capture.read()
-    R_success, R_frame = R_capture.read()
-    if L_success and R_success:
-        if verbose: print('Success')
-        num_L_rows, num_L_cols, num_ch = np.shape(L_frame)
-        num_R_rows, num_R_cols, num_ch = np.shape(R_frame)
-        
-        # Read into CuPY (Comment out block when using NumPy)
-        L_frame = np.asarray(L_frame)
-        R_frame = np.asarray(R_frame)
-        #cols = int(num_cols / 2)
-        # Mode select
-        if MODE == 1:
-            if verbose: print('Left mono/2D')
-            display('Left eye monoscopic', L_frame[:,:])
-        elif MODE == 2:
-            if verbose: print('Right mono/2D')
-            display('Right eye monoscopic', R_frame[:,:])
-        elif MODE == 3:
-            if verbose: print('Top Bottom (3D)')
-            top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
-        elif MODE == 4:
-            if verbose: print('Interlaced (3D)')
-            row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY)
+def main():
+    # Execution continues here
+    L_capture = cv2.VideoCapture(VIDEO_LEFT)
+    if verbose: print('Reading first video')
+    R_capture = cv2.VideoCapture(VIDEO_RIGHT)
+    if verbose: print('Reading second video')
+    while(L_capture.isOpened() and R_capture.isOpened()):
+        if verbose: print('Capture is open')
+        L_success, L_frame = L_capture.read()
+        R_success, R_frame = R_capture.read()
+        if L_success and R_success:
+            if verbose: print('Success')
+            num_L_rows, num_L_cols, num_ch = np.shape(L_frame)
+            num_R_rows, num_R_cols, num_ch = np.shape(R_frame)
+            
+            # Read into CuPY (Comment out block when using NumPy)
+            L_frame = np.asarray(L_frame)
+            R_frame = np.asarray(R_frame)
+            #cols = int(num_cols / 2)
+            # Mode select
+            if MODE == 1:
+                if verbose: print('Left mono/2D')
+                display('Left eye monoscopic', L_frame[:,:])
+            elif MODE == 2:
+                if verbose: print('Right mono/2D')
+                display('Right eye monoscopic', R_frame[:,:])
+            elif MODE == 3:
+                if verbose: print('Top Bottom (3D)')
+                top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
+            elif MODE == 4:
+                if verbose: print('Interlaced (3D)')
+                row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY)
+            else:
+                # Previously side-by-side (time permitting)
+                #original(frame[:,0:cols], frame[:,cols:], POLARITY)
+                print(1)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
         else:
-            # Previously side-by-side (time permitting)
-            #original(frame[:,0:cols], frame[:,cols:], POLARITY)
-            print(1)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    else:
-        L_capture = cv2.VideoCapture(VIDEO_LEFT)
-        R_capture = cv2.VideoCapture(VIDEO_RIGHT)
+            L_capture = cv2.VideoCapture(VIDEO_LEFT)
+            R_capture = cv2.VideoCapture(VIDEO_RIGHT)
 
 
-L_capture.release()
-R_capture.release()
-cv2.destroyAllWindows()
+    L_capture.release()
+    R_capture.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    parse_cmd_args()
+    main()
