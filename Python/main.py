@@ -113,12 +113,12 @@ def parse_cmd_args():
 # BEGIN MAIN EXECUTION
 # Place odd rows from left above even rows from right
 def top_bottom(left_in, right_in, pol):
-    if verbose: print('Made it to top-bottom')
+    if VERBOSE: print('Made it to top-bottom')
     num_rows, num_cols, num_ch = np.shape(left_in)
     rows = int(num_rows / 2)
-    if verbose: print('Before CuPy')
+    if VERBOSE: print('Before CuPy')
     out = np.zeros_like(left_in)
-    if verbose: print('Splitting...')
+    if VERBOSE: print('Splitting...')
     if pol:
         # Polarity is swapped
         out[0:rows,:] = right_in[::2,:]
@@ -127,7 +127,7 @@ def top_bottom(left_in, right_in, pol):
         # Default polarity
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
-    if verbose: print('Ready to display')
+    if VERBOSE: print('Ready to display')
     display('Top-bottom', out)
 
 # Interleave odd rows from left and even rows from right
@@ -167,7 +167,7 @@ def display(window, output):
         np_out = np.uint8(output)
 
     result = np_out[:, :, [0, 1, 2]]
-    if verbose: print('Attempting to display...')
+    if VERBOSE: print('Attempting to display...')
 
     # Result 1 -- Sepia toned output
     if IMCORR_MODE==1:
@@ -194,7 +194,7 @@ def display(window, output):
     if IMCORR_MODE==3:
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
-    if verbose: print('Frame displayed')
+    if VERBOSE: print('Frame displayed')
     cv2.imshow(window, result)
 
 
@@ -202,15 +202,15 @@ def display(window, output):
 def main():
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
-    if verbose: print('Reading first video')
+    if VERBOSE: print('Reading first video')
     R_capture = cv2.VideoCapture(VIDEO_RIGHT)
-    if verbose: print('Reading second video')
+    if VERBOSE: print('Reading second video')
     while(L_capture.isOpened() and R_capture.isOpened()):
-        if verbose: print('Capture is open')
+        if VERBOSE: print('Capture is open')
         L_success, L_frame = L_capture.read()
         R_success, R_frame = R_capture.read()
         if L_success and R_success:
-            if verbose: print('Success')
+            if VERBOSE: print('Success')
             num_L_rows, num_L_cols, num_ch = np.shape(L_frame)
             num_R_rows, num_R_cols, num_ch = np.shape(R_frame)
             
@@ -220,16 +220,16 @@ def main():
             #cols = int(num_cols / 2)
             # Mode select
             if MODE == 1:
-                if verbose: print('Left mono/2D')
+                if VERBOSE: print('Left mono/2D')
                 display('Left eye monoscopic', L_frame[:,:])
             elif MODE == 2:
-                if verbose: print('Right mono/2D')
+                if VERBOSE: print('Right mono/2D')
                 display('Right eye monoscopic', R_frame[:,:])
             elif MODE == 3:
-                if verbose: print('Top Bottom (3D)')
+                if VERBOSE: print('Top Bottom (3D)')
                 top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
             elif MODE == 4:
-                if verbose: print('Interlaced (3D)')
+                if VERBOSE: print('Interlaced (3D)')
                 row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY)
             else:
                 # Previously side-by-side (time permitting)
