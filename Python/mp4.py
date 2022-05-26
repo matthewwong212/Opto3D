@@ -27,23 +27,29 @@ BRIGHT_SCALE = 50
 IMCORR_MODE = 0
 
 # INPUT STREAMS (Slight disparity)
-VIDEO_LEFT = 'left_camera.mp4'
-VIDEO_RIGHT = 'right_camera.mp4'
+VIDEO_LEFT = 'left_v2_1080.mp4'
+VIDEO_RIGHT = 'right_v2_1080.mp4'
 
 # DEBUG MESSAGES
 VERBOSE = False
 
 # Set CuPy or NumPy Execution. Internal testing only.
-USE_CUPY = True
+USE_CUPY = False
+
+# Set Fullscreen option
+FULL = False
+
+# To tune delay between frames depending on CPU
+FRAMEDELAY = 7
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
-VIDEO = 'city_video_1080p.mp4'
+# VIDEO = 'city_video_1080p.mp4'
 
 
 from sre_constants import SUCCESS
 import sys
-sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
+#sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
 import cv2
 import argparse_file
 if USE_CUPY:
@@ -51,8 +57,8 @@ if USE_CUPY:
 else:
     import numpy as np
 
-
-def parse_cmd_args():
+def set_args():
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
     # Gets parsed command line arguments from argparse_file
     parser = argparse_file.create_parser()
     args = parser.parse_args()
@@ -70,6 +76,14 @@ def parse_cmd_args():
             print("Debugging print statements disabled")
             VERBOSE = False
 
+    if args.fullscreen:
+        if args.fullscreen == "True":
+            print("Fullscreen Mode")
+            FULL = True
+        else:
+            print("Windowed Mode")
+            FULL = False
+
     # Set chosen mode
     if args.mode:
         if (args.mode == 1):
@@ -82,6 +96,7 @@ def parse_cmd_args():
             print("Mode set to Row-Interleaved")
 
         MODE = args.mode
+
 
     # Set polarity.  Argument passed as string, since options are 0 or 1.
     if args.polarity:
@@ -112,7 +127,7 @@ def parse_cmd_args():
 
 # BEGIN MAIN EXECUTION
 # Place odd rows from left above even rows from right
-def top_bottom(left_in, right_in, pol, img_list):
+def top_bottom(left_in, right_in, pol):
     if VERBOSE: print('Made it to top-bottom')
     num_rows, num_cols, num_ch = np.shape(left_in)
     rows = int(num_rows / 2)
@@ -128,10 +143,10 @@ def top_bottom(left_in, right_in, pol, img_list):
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
     if VERBOSE: print('Ready to display')
-    return display('Top-bottom', out)
+    display('Top-bottom', out)
 
 # Interleave odd rows from left and even rows from right
-def row_interleaved(left_in, right_in, pol, img_list):
+def row_interleaved(left_in, right_in, pol):
     out = np.zeros_like(left_in)
     if pol:
         # Polarity is swapped
@@ -141,9 +156,9 @@ def row_interleaved(left_in, right_in, pol, img_list):
         # Default polarity
         out[::2,:] = np.array(left_in[::2,:])
         out[1::2,:] = np.array(right_in[1::2,:])
-    return display('Row interleaved', out, img_list)
+    display('Row interleaved', out)
 
-def original(left_in, right_in, pol, img_list):
+def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
     if pol:
         # Polarity is swapped
@@ -151,13 +166,15 @@ def original(left_in, right_in, pol, img_list):
     else:
         # Default polarity
         out = np.hstack((left_in, right_in))
-    return display('Original (Side-by-side)', out, img_list)
+    display('Original (Side-by-side)', out)
 
 # Main display execution
-def display(window, output, img_list):
+def display(window, output):
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
     # Fullscreen options for testing
-    #cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
-    #cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    if FULL:
+        cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Result 0 -- Unmodified output (Default)
     # Differing lines for CuPy vs NumPy
@@ -174,12 +191,19 @@ def display(window, output, img_list):
         sepia_kernel = np.float64([[0.272, 0.534, 0.131],
                                 [0.349, 0.686, 0.168],
                                 [0.393, 0.769, 0.189]])
-        np_out_float = np.float64(output.get())
+        if USE_CUPY:
+            np_out_float = np.float(output.get())
+        else:
+            np_out_float = np.float64(output)
         result_2s = cv2.transform(np_out_float, sepia_kernel)
         #result[np.where(np.asarray(result) > 255)] = 255
         result_2c = np.clip(result_2s, 0, 255)
         result_2a = np.array(result_2c, dtype=np.uint8)
-        result = np.uint8(result_2a.get())
+        # result = np.uint8(result_2a.get())
+        if USE_CUPY:
+            result = np.uint8(result_2a.get())
+        else:
+            result = np.uint8(result_2a)
 
     # Result 2 -- Saturation adjustment
     if IMCORR_MODE==2:
@@ -195,18 +219,17 @@ def display(window, output, img_list):
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
     if VERBOSE: print('Frame displayed')
-    img_list.append(result)
-    return img_list
-
+    cv2.imshow(window, result)
 
 
 def main():
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY
+    global FRAMES = []
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
     if VERBOSE: print('Reading first video')
     R_capture = cv2.VideoCapture(VIDEO_RIGHT)
     if VERBOSE: print('Reading second video')
-    img_list = []
     while(L_capture.isOpened() and R_capture.isOpened()):
         if VERBOSE: print('Capture is open')
         L_success, L_frame = L_capture.read()
@@ -223,25 +246,45 @@ def main():
             # Mode select
             if MODE == 1:
                 if VERBOSE: print('Left mono/2D')
-                img_list = display('Left eye monoscopic', L_frame[:,:], img_list)
+                display('Left eye monoscopic', L_frame[:,:])
             elif MODE == 2:
                 if VERBOSE: print('Right mono/2D')
-                img_list = display('Right eye monoscopic', R_frame[:,:], img_list)
+                display('Right eye monoscopic', R_frame[:,:])
             elif MODE == 3:
                 if VERBOSE: print('Top Bottom (3D)')
-                img_list = top_bottom(L_frame[:,:], R_frame[:,:], POLARITY, img_list)
+                top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
             elif MODE == 4:
                 if VERBOSE: print('Interlaced (3D)')
-                img_list = row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY, img_list)
+                row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY)
             else:
                 # Previously side-by-side (time permitting)
                 #original(frame[:,0:cols], frame[:,cols:], POLARITY)
                 print(1)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
         else:
             L_capture = cv2.VideoCapture(VIDEO_LEFT)
             R_capture = cv2.VideoCapture(VIDEO_RIGHT)
+
+        key = cv2.waitKey(FRAMEDELAY)
+        if key & 0xFF == ord('q'):
+            break
+        elif key & 0xFF == ord('m'):
+            cv2.destroyAllWindows()
+            if MODE == 4:
+                MODE = 1
+            else:
+                MODE += 1
+        elif key & 0xFF == ord('p'):
+            cv2.destroyAllWindows()
+            if POLARITY == 0:
+                POLARITY = 1
+            else:
+                POLARITY = 0
+        elif key & 0xFF == ord('i'):
+            cv2.destroyAllWindows()
+            if IMCORR_MODE == 0:
+                IMCORR_MODE = 1
+            else:
+                IMCORR_MODE = 0
 
 
     L_capture.release()
@@ -250,5 +293,5 @@ def main():
 
 
 if __name__ == "__main__":
-    parse_cmd_args()
+    set_args()
     main()
