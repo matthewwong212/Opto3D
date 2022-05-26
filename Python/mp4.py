@@ -171,6 +171,7 @@ def original(left_in, right_in, pol):
 # Main display execution
 def display(window, output):
     global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
+
     # Fullscreen options for testing
     if FULL:
         cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
@@ -218,18 +219,18 @@ def display(window, output):
     if IMCORR_MODE==3:
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
-    if VERBOSE: print('Frame displayed')
-    cv2.imshow(window, result)
+    if VERBOSE: print('Frame written')
+    VIDEO_OUT.write(result)
 
 
 def main():
-    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY
-    global FRAMES = []
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, VIDEO_OUT
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
     if VERBOSE: print('Reading first video')
     R_capture = cv2.VideoCapture(VIDEO_RIGHT)
     if VERBOSE: print('Reading second video')
+    VIDEO_OUT = cv2.VideoWriter('test.mp4', fourcc, float(30), (1920, 1080))
     while(L_capture.isOpened() and R_capture.isOpened()):
         if VERBOSE: print('Capture is open')
         L_success, L_frame = L_capture.read()
@@ -289,6 +290,7 @@ def main():
 
     L_capture.release()
     R_capture.release()
+    VIDEO_OUT.release()
     cv2.destroyAllWindows()
 
 
