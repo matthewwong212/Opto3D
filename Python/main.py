@@ -27,87 +27,29 @@ BRIGHT_SCALE = 50
 IMCORR_MODE = 0
 
 # INPUT STREAMS (Slight disparity)
-VIDEO_LEFT = 'left_camera.mp4'
-VIDEO_RIGHT = 'right_camera.mp4'
+VIDEO_LEFT = 'left_v2_1080.mp4'
+VIDEO_RIGHT = 'right_v2_1080.mp4'
 
 # DEBUG MESSAGES
 VERBOSE = False
 
 # Set CuPy or NumPy Execution. Internal testing only.
-USE_CUPY = True
+USE_CUPY = False
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
-VIDEO = 'city_video_1080p.mp4'
+# VIDEO = 'city_video_1080p.mp4'
 
 
 from sre_constants import SUCCESS
 import sys
-sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
+#sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
 import cv2
 import argparse_file
 if USE_CUPY:
     import cupy as np
 else:
     import numpy as np
-
-
-def parse_cmd_args():
-    # Gets parsed command line arguments from argparse_file
-    parser = argparse_file.create_parser()
-    args = parser.parse_args()
-
-    # Set video sources:
-    VIDEO_LEFT = args.leftCamera
-    VIDEO_RIGHT = args.rightCamera
-
-    # Set debugging messages
-    if args.verbose:
-        if args.verbose == "True":
-            print("Showing debugging print statements")
-            VERBOSE = True
-        else:
-            print("Debugging print statements disabled")
-            VERBOSE = False
-
-    # Set chosen mode
-    if args.mode:
-        if (args.mode == 1):
-            print("Mode set to Left Camera")
-        elif (args.mode == 2):
-            print("Mode set to Right Camera")
-        elif (args.mode == 3):
-            print("Mode set to Top-Bottom")
-        elif (args.mode == 4):
-            print("Mode set to Row-Interleaved")
-
-        MODE = args.mode
-
-    # Set polarity.  Argument passed as string, since options are 0 or 1.
-    if args.polarity:
-        if (args.polarity == "0"):
-            print("Default polarity")
-        elif (args.polarity == "1"):
-            print("Swapped polarity")
-
-        POLARITY = int(args.polarity)
-
-    # Set image correction mode.  Argument passed as string, since options include 0
-    if args.imageCorrection:
-        if (args.imageCorrection == "0"):
-            print("Unaltered image")
-        elif (args.imageCorrection == "1"):
-            print("Image in Sepia")
-        elif(args.imageCorrection == "2"):
-            print("Saturation Adjusted")
-
-        IMCORR_MODE = int(args.imageCorrection)
-
-    # Set saturation scale.  Argument passed as string, since 0 option is possible
-    if args.saturationScale:
-        print("Saturation scale set to: ", args.saturationScale)
-
-        SAT_SCALE = float(args.saturationScale)
 
 
 # BEGIN MAIN EXECUTION
@@ -198,8 +140,8 @@ def display(window, output):
     cv2.imshow(window, result)
 
 
-
 def main():
+    global MODE, POLARITY
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
     if VERBOSE: print('Reading first video')
@@ -235,11 +177,25 @@ def main():
                 # Previously side-by-side (time permitting)
                 #original(frame[:,0:cols], frame[:,cols:], POLARITY)
                 print(1)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
         else:
             L_capture = cv2.VideoCapture(VIDEO_LEFT)
             R_capture = cv2.VideoCapture(VIDEO_RIGHT)
+
+        key = cv2.waitKey(1)
+        if key & 0xFF == ord('q'):
+            exit()
+        elif key & 0xFF == ord('m'):
+            cv2.destroyAllWindows()
+            if MODE == 4:
+                MODE = 1
+            else:
+                MODE += 1
+        elif key & 0xFF == ord('p'):
+            cv2.destroyAllWindows()
+            if POLARITY == 0:
+                POLARITY = 1
+            else:
+                POLARITY = 0
 
 
     L_capture.release()
@@ -248,5 +204,61 @@ def main():
 
 
 if __name__ == "__main__":
-    parse_cmd_args()
+    # Gets parsed command line arguments from argparse_file
+    parser = argparse_file.create_parser()
+    args = parser.parse_args()
+
+    # Set video sources:
+    VIDEO_LEFT = args.leftCamera
+    VIDEO_RIGHT = args.rightCamera
+
+    # Set debugging messages
+    if args.verbose:
+        if args.verbose == "True":
+            print("Showing debugging print statements")
+            VERBOSE = True
+        else:
+            print("Debugging print statements disabled")
+            VERBOSE = False
+
+    # Set chosen mode
+    if args.mode:
+        if (args.mode == 1):
+            print("Mode set to Left Camera")
+        elif (args.mode == 2):
+            print("Mode set to Right Camera")
+        elif (args.mode == 3):
+            print("Mode set to Top-Bottom")
+        elif (args.mode == 4):
+            print("Mode set to Row-Interleaved")
+
+        MODE = args.mode
+
+
+    # Set polarity.  Argument passed as string, since options are 0 or 1.
+    if args.polarity:
+        if (args.polarity == "0"):
+            print("Default polarity")
+        elif (args.polarity == "1"):
+            print("Swapped polarity")
+
+        POLARITY = int(args.polarity)
+
+    # Set image correction mode.  Argument passed as string, since options include 0
+    if args.imageCorrection:
+        if (args.imageCorrection == "0"):
+            print("Unaltered image")
+        elif (args.imageCorrection == "1"):
+            print("Image in Sepia")
+        elif(args.imageCorrection == "2"):
+            print("Saturation Adjusted")
+
+        IMCORR_MODE = int(args.imageCorrection)
+
+    # Set saturation scale.  Argument passed as string, since 0 option is possible
+    if args.saturationScale:
+        print("Saturation scale set to: ", args.saturationScale)
+
+        SAT_SCALE = float(args.saturationScale)
+
     main()
