@@ -3,7 +3,7 @@ import argparse
 def t_f_checker(a):
     if (a != "True") and (a != "False"):
         raise argparse.ArgumentTypeError(
-            'Invalid \'verbose\' argument.  Must be True/False.  Use --help to see options')
+            'Invalid argument.  Must be True/False.  Use --help to see options')
     return a
 
 def mode_checker(a):
@@ -61,6 +61,7 @@ def create_parser():
     parser.add_argument("-p", "--polarity", help = "0 = Default\n1 = Swapped", type = polarity_checker)
     parser.add_argument("-c", "--imageCorrection", help = "0 = Unaltered\n1 = Sepia (For posterior view)\n2 = Saturation Adjustment", type = image_corr_checker)
     parser.add_argument("-s", "--saturationScale", help = "Default is 1.5", type = float)
+    parser.add_argument("-f", "--fullscreen", help = "Show in fullscreen (True/False)", type = t_f_checker)
 
     # Required arguments
     reqNamed = parser.add_argument_group("Required L/R Camera file names")

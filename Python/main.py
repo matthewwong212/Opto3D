@@ -36,6 +36,12 @@ VERBOSE = False
 # Set CuPy or NumPy Execution. Internal testing only.
 USE_CUPY = False
 
+# Set Fullscreen option
+FULL = False
+
+# To tune delay between frames depending on CPU
+FRAMEDELAY = 7
+
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
 # VIDEO = 'city_video_1080p.mp4'
@@ -52,7 +58,7 @@ else:
     import numpy as np
 
 def set_args():
-    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
     # Gets parsed command line arguments from argparse_file
     parser = argparse_file.create_parser()
     args = parser.parse_args()
@@ -69,6 +75,14 @@ def set_args():
         else:
             print("Debugging print statements disabled")
             VERBOSE = False
+
+    if args.fullscreen:
+        if args.fullscreen == "True":
+            print("Fullscreen Mode")
+            FULL = True
+        else:
+            print("Windowed Mode")
+            FULL = False
 
     # Set chosen mode
     if args.mode:
@@ -156,9 +170,11 @@ def original(left_in, right_in, pol):
 
 # Main display execution
 def display(window, output):
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
     # Fullscreen options for testing
-    #cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
-    #cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    if FULL:
+        cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Result 0 -- Unmodified output (Default)
     # Differing lines for CuPy vs NumPy
@@ -207,7 +223,7 @@ def display(window, output):
 
 
 def main():
-    global MODE, POLARITY, IMCORR_MODE
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
     if VERBOSE: print('Reading first video')
@@ -247,7 +263,7 @@ def main():
             L_capture = cv2.VideoCapture(VIDEO_LEFT)
             R_capture = cv2.VideoCapture(VIDEO_RIGHT)
 
-        key = cv2.waitKey(1)
+        key = cv2.waitKey(FRAMEDELAY)
         if key & 0xFF == ord('q'):
             break
         elif key & 0xFF == ord('m'):
