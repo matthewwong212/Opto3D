@@ -51,6 +51,65 @@ if USE_CUPY:
 else:
     import numpy as np
 
+def set_args():
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE
+    # Gets parsed command line arguments from argparse_file
+    parser = argparse_file.create_parser()
+    args = parser.parse_args()
+
+    # Set video sources:
+    VIDEO_LEFT = args.leftCamera
+    VIDEO_RIGHT = args.rightCamera
+
+    # Set debugging messages
+    if args.verbose:
+        if args.verbose == "True":
+            print("Showing debugging print statements")
+            VERBOSE = True
+        else:
+            print("Debugging print statements disabled")
+            VERBOSE = False
+
+    # Set chosen mode
+    if args.mode:
+        if (args.mode == 1):
+            print("Mode set to Left Camera")
+        elif (args.mode == 2):
+            print("Mode set to Right Camera")
+        elif (args.mode == 3):
+            print("Mode set to Top-Bottom")
+        elif (args.mode == 4):
+            print("Mode set to Row-Interleaved")
+
+        MODE = args.mode
+
+
+    # Set polarity.  Argument passed as string, since options are 0 or 1.
+    if args.polarity:
+        if (args.polarity == "0"):
+            print("Default polarity")
+        elif (args.polarity == "1"):
+            print("Swapped polarity")
+
+        POLARITY = int(args.polarity)
+
+    # Set image correction mode.  Argument passed as string, since options include 0
+    if args.imageCorrection:
+        if (args.imageCorrection == "0"):
+            print("Unaltered image")
+        elif (args.imageCorrection == "1"):
+            print("Image in Sepia")
+        elif(args.imageCorrection == "2"):
+            print("Saturation Adjusted")
+
+        IMCORR_MODE = int(args.imageCorrection)
+
+    # Set saturation scale.  Argument passed as string, since 0 option is possible
+    if args.saturationScale:
+        print("Saturation scale set to: ", args.saturationScale)
+
+        SAT_SCALE = float(args.saturationScale)
+
 
 # BEGIN MAIN EXECUTION
 # Place odd rows from left above even rows from right
@@ -116,12 +175,19 @@ def display(window, output):
         sepia_kernel = np.float64([[0.272, 0.534, 0.131],
                                 [0.349, 0.686, 0.168],
                                 [0.393, 0.769, 0.189]])
-        np_out_float = np.float64(output.get())
+        if USE_CUPY:
+            np_out_float = np.float(output.get())
+        else:
+            np_out_float = np.float64(output)
         result_2s = cv2.transform(np_out_float, sepia_kernel)
         #result[np.where(np.asarray(result) > 255)] = 255
         result_2c = np.clip(result_2s, 0, 255)
         result_2a = np.array(result_2c, dtype=np.uint8)
-        result = np.uint8(result_2a.get())
+        # result = np.uint8(result_2a.get())
+        if USE_CUPY:
+            result = np.uint8(result_2a.get())
+        else:
+            result = np.uint8(result_2a)
 
     # Result 2 -- Saturation adjustment
     if IMCORR_MODE==2:
@@ -141,7 +207,7 @@ def display(window, output):
 
 
 def main():
-    global MODE, POLARITY
+    global MODE, POLARITY, IMCORR_MODE
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
     if VERBOSE: print('Reading first video')
@@ -183,7 +249,7 @@ def main():
 
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
-            exit()
+            break
         elif key & 0xFF == ord('m'):
             cv2.destroyAllWindows()
             if MODE == 4:
@@ -196,6 +262,12 @@ def main():
                 POLARITY = 1
             else:
                 POLARITY = 0
+        elif key & 0xFF == ord('i'):
+            cv2.destroyAllWindows()
+            if IMCORR_MODE == 0:
+                IMCORR_MODE = 1
+            else:
+                IMCORR_MODE = 0
 
 
     L_capture.release()
@@ -204,61 +276,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # Gets parsed command line arguments from argparse_file
-    parser = argparse_file.create_parser()
-    args = parser.parse_args()
-
-    # Set video sources:
-    VIDEO_LEFT = args.leftCamera
-    VIDEO_RIGHT = args.rightCamera
-
-    # Set debugging messages
-    if args.verbose:
-        if args.verbose == "True":
-            print("Showing debugging print statements")
-            VERBOSE = True
-        else:
-            print("Debugging print statements disabled")
-            VERBOSE = False
-
-    # Set chosen mode
-    if args.mode:
-        if (args.mode == 1):
-            print("Mode set to Left Camera")
-        elif (args.mode == 2):
-            print("Mode set to Right Camera")
-        elif (args.mode == 3):
-            print("Mode set to Top-Bottom")
-        elif (args.mode == 4):
-            print("Mode set to Row-Interleaved")
-
-        MODE = args.mode
-
-
-    # Set polarity.  Argument passed as string, since options are 0 or 1.
-    if args.polarity:
-        if (args.polarity == "0"):
-            print("Default polarity")
-        elif (args.polarity == "1"):
-            print("Swapped polarity")
-
-        POLARITY = int(args.polarity)
-
-    # Set image correction mode.  Argument passed as string, since options include 0
-    if args.imageCorrection:
-        if (args.imageCorrection == "0"):
-            print("Unaltered image")
-        elif (args.imageCorrection == "1"):
-            print("Image in Sepia")
-        elif(args.imageCorrection == "2"):
-            print("Saturation Adjusted")
-
-        IMCORR_MODE = int(args.imageCorrection)
-
-    # Set saturation scale.  Argument passed as string, since 0 option is possible
-    if args.saturationScale:
-        print("Saturation scale set to: ", args.saturationScale)
-
-        SAT_SCALE = float(args.saturationScale)
-
+    set_args()
     main()
