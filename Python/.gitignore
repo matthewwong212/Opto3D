@@ -2,3 +2,5 @@ city_video_1080p.mp4
 left_4k_in.png
 right_4k_in.png
 *.mp4
+Pipfile
+Pipfile.lock
