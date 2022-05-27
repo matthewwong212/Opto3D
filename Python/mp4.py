@@ -1,4 +1,4 @@
-# 2022 Computer Engineering Capstone
+    # 2022 Computer Engineering Capstone
 # Team: Opto3D / Alcon
 
 # MODE SELECT
@@ -34,13 +34,13 @@ VIDEO_RIGHT = 'right_v2_1080.mp4'
 VERBOSE = False
 
 # Set CuPy or NumPy Execution. Internal testing only.
-USE_CUPY = False
+USE_CUPY = True
 
 # Set Fullscreen option
 FULL = False
 
 # To tune delay between frames depending on CPU
-FRAMEDELAY = 7
+FRAMEDELAY = 1
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
@@ -49,7 +49,7 @@ FRAMEDELAY = 7
 
 from sre_constants import SUCCESS
 import sys
-#sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
+sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
 import cv2
 import argparse_file
 if USE_CUPY:
@@ -230,6 +230,7 @@ def main():
     if VERBOSE: print('Reading first video')
     R_capture = cv2.VideoCapture(VIDEO_RIGHT)
     if VERBOSE: print('Reading second video')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     VIDEO_OUT = cv2.VideoWriter('test.mp4', fourcc, float(30), (1920, 1080))
     while(L_capture.isOpened() and R_capture.isOpened()):
         if VERBOSE: print('Capture is open')
