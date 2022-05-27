@@ -169,7 +169,7 @@ def top_bottom(left_in, right_in, pol):
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
     if VERBOSE: print('Ready to display')
-    display('Top-bottom', out)
+    display('Opto3D', out)
 
 # Interleave odd rows from left and even rows from right
 def row_interleaved(left_in, right_in, pol):
@@ -182,7 +182,7 @@ def row_interleaved(left_in, right_in, pol):
         # Default polarity
         out[0::2,:, :] = np.array(left_in[0::2,:, :])
         out[1::2,:, :] = np.array(right_in[1::2,:, :])
-    display('Row interleaved', out)
+    display('Opto3D', out)
 
 def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
@@ -192,7 +192,7 @@ def original(left_in, right_in, pol):
     else:
         # Default polarity
         out = np.hstack((left_in, right_in))
-    display('Original (Side-by-side)', out)
+    display('Opto3D', out)
 
 
 # Main display execution
@@ -301,10 +301,10 @@ def main():
             # Mode select
             if MODE == 1:
                 if VERBOSE: print('Left mono/2D')
-                display('Left eye monoscopic', L_frame[:,:])
+                display('Opto3D', L_frame[:,:])
             elif MODE == 2:
                 if VERBOSE: print('Right mono/2D')
-                display('Right eye monoscopic', R_frame[:,:])
+                display('Opto3D', R_frame[:,:])
             elif MODE == 3:
                 if VERBOSE: print('Top Bottom (3D)')
                 top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
@@ -323,19 +323,16 @@ def main():
         if key & 0xFF == ord('q'):
             break
         elif key & 0xFF == ord('m'):
-            cv2.destroyAllWindows()
             if MODE == 4:
                 MODE = 1
             else:
                 MODE += 1
         elif key & 0xFF == ord('p'):
-            cv2.destroyAllWindows()
             if POLARITY == 0:
                 POLARITY = 1
             else:
                 POLARITY = 0
         elif key & 0xFF == ord('i'):
-            cv2.destroyAllWindows()
             if IMCORR_MODE == 0:
                 IMCORR_MODE = 1
             else:
