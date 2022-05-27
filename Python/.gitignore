@@ -4,3 +4,4 @@ right_4k_in.png
 *.mp4
 Pipfile
 Pipfile.lock
+*.avi

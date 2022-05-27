@@ -59,9 +59,13 @@ def create_parser():
     parser.add_argument("-v", "--verbose", help = "Show debugging print statements (True/False)", type = t_f_checker)
     parser.add_argument("-m", "--mode", help = "1 = Left Camera\n2 = Right Camera\n3 = Top-Bottom\n4 = Row-Interleaved", type = mode_checker)
     parser.add_argument("-p", "--polarity", help = "0 = Default\n1 = Swapped", type = polarity_checker)
-    parser.add_argument("-c", "--imageCorrection", help = "0 = Unaltered\n1 = Sepia (For posterior view)\n2 = Saturation Adjustment", type = image_corr_checker)
+    parser.add_argument("-i", "--imageCorrection", help = "0 = Unaltered\n1 = Sepia (For posterior view)\n2 = Saturation Adjustment", type = image_corr_checker)
     parser.add_argument("-s", "--saturationScale", help = "Default is 1.5", type = float)
     parser.add_argument("-f", "--fullscreen", help = "Show in fullscreen (True/False)", type = t_f_checker)
+    parser.add_argument("-o", "--outFilename", help = "Specifies filename when writing video to file")
+    parser.add_argument("-a", "--saveVideo", help = "Save to a .avi file (True/False).  Saves entire video when looping", type = t_f_checker)
+    parser.add_argument("-t", "--loop", help = "Loop input videos (True/False)", type = t_f_checker)
+
 
     # Required arguments
     reqNamed = parser.add_argument_group("Required L/R Camera file names")
