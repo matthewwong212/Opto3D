@@ -1,4 +1,4 @@
-    # 2022 Computer Engineering Capstone
+# 2022 Computer Engineering Capstone
 # Team: Opto3D / Alcon
 
 # MODE SELECT
@@ -29,7 +29,6 @@ IMCORR_MODE = 0
 # INPUT STREAMS (Slight disparity)
 VIDEO_LEFT = 'left_v2_1080.mp4'
 VIDEO_RIGHT = 'right_v2_1080.mp4'
-VIDEO_OUT_FILENAME = "default_test"
 
 # DEBUG MESSAGES
 VERBOSE = False
@@ -40,14 +39,11 @@ USE_CUPY = False
 # Set Fullscreen option
 FULL = False
 
-# Set Loop option
-LOOP = True
-
-# Set Record option
-RECORD = False
-
 # To tune delay between frames depending on CPU
 FRAMEDELAY = 1
+
+#For Button control interrupts
+GPIO_KEY = -1
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
@@ -56,16 +52,54 @@ FRAMEDELAY = 1
 
 from sre_constants import SUCCESS
 import sys
-#sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
+sys.path.append('/usr/local/lib/python3.8/site-packages') # Allow Python3.8 to refer to OpenCV4.5.1 install library
 import cv2
 import argparse_file
+import Jetson.GPIO as GPIO
+
+#GPIO Initialization and interrupt handlers
+GPIO.setmode(GPIO.BOARD)
+GPIO.setwarnings(False)
+
+def toggle_mode_select():
+    global GPIO_KEY
+    GPIO_KEY = 109
+
+def toggle_polarity():
+    global GPIO_KEY
+    GPIO_KEY = 112
+
+def toggle_imcorr_mode():
+    global GPIO_KEY
+    GPIO_KEY = 105
+
+GPIO.setup(15, GPIO.IN)
+GPIO.setup(18, GPIO.IN)
+GPIO.setup(22, GPIO.IN)
+
+def mode_select_interrupt(channel):
+    global GPIO_KEY
+    toggle_mode_select()
+
+def polarity_swap_interrupt(channel):
+    global GPIO_KEY
+    toggle_polarity()
+
+def imcorr_mode_interrupt(channel):
+    global GPIO_KEY
+    toggle_imcorr_mode()
+
+GPIO.add_event_detect(15, GPIO.RISING, callback=mode_select_interrupt, bouncetime=250)
+GPIO.add_event_detect(18, GPIO.RISING, callback=polarity_swap_interrupt, bouncetime=250)
+GPIO.add_event_detect(22, GPIO.RISING, callback=imcorr_mode_interrupt, bouncetime=250)
+
 if USE_CUPY:
     import cupy as np
 else:
     import numpy as np
 
 def set_args():
-    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, VIDEO_OUT, VIDEO_OUT_FILENAME, LOOP, RECORD
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
     # Gets parsed command line arguments from argparse_file
     parser = argparse_file.create_parser()
     args = parser.parse_args()
@@ -73,10 +107,6 @@ def set_args():
     # Set video sources:
     VIDEO_LEFT = args.leftCamera
     VIDEO_RIGHT = args.rightCamera
-
-    # Set video out file
-    if args.outFilename:
-        VIDEO_OUT_FILENAME = args.outFilename + ".avi"
 
     # Set debugging messages
     if args.verbose:
@@ -94,21 +124,6 @@ def set_args():
         else:
             print("Windowed Mode")
             FULL = False
-
-    if args.loop:
-        if args.loop == "True":
-            print("Looping Video")
-            LOOP = True
-        else:
-            print("Playing Once")
-            LOOP = False
-
-    if args.saveVideo:
-        if args.saveVideo == "True":
-            print("Saving to AVI. Filename: ", VIDEO_OUT_FILENAME)
-            RECORD = True
-        else:
-            RECORD = False
 
     # Set chosen mode
     if args.mode:
@@ -169,20 +184,22 @@ def top_bottom(left_in, right_in, pol):
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
     if VERBOSE: print('Ready to display')
-    display('Top-bottom', out)
+    #display('Top-bottom', out)
+    display('Opto3D', out)
 
 # Interleave odd rows from left and even rows from right
 def row_interleaved(left_in, right_in, pol):
     out = np.zeros_like(left_in)
     if pol:
         # Polarity is swapped
-        out[0::2,:, :] = right_in[0::2,:, :]
-        out[1::2,:, :] = left_in[1::2,:, :]
+        out[::2,:] = right_in[::2,:]
+        out[1::2,:] = left_in[1::2,:]
     else:
         # Default polarity
-        out[0::2,:, :] = np.array(left_in[0::2,:, :])
-        out[1::2,:, :] = np.array(right_in[1::2,:, :])
-    display('Row interleaved', out)
+        out[::2,:] = np.array(left_in[::2,:])
+        out[1::2,:] = np.array(right_in[1::2,:])
+    #display('Row interleaved', out)
+    display('Opto3D', out)
 
 def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
@@ -194,11 +211,9 @@ def original(left_in, right_in, pol):
         out = np.hstack((left_in, right_in))
     display('Original (Side-by-side)', out)
 
-
 # Main display execution
 def display(window, output):
-    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, VIDEO_OUT, VIDEO_OUT_FILENAME, LOOP, RECORD
-
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL
     # Fullscreen options for testing
     if FULL:
         cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
@@ -211,7 +226,7 @@ def display(window, output):
     else:
         np_out = np.uint8(output)
 
-    result = np_out
+    result = np_out[:, :, [0, 1, 2]]
     if VERBOSE: print('Attempting to display...')
 
     # Result 1 -- Sepia toned output
@@ -246,49 +261,21 @@ def display(window, output):
     if IMCORR_MODE==3:
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
-    #overlay
-    modeArr = ["Original", "Left", "Right", "Top-bottom", "Row Interleaved"]
-    modeText = "Mode: " + modeArr[MODE]
-    polarityArr = ["Default", "Swapped"]
-    polarityText = "Polarity: " + polarityArr[POLARITY]
-    result = result.copy()
-    if(int(result[0].shape[0]) == 3840): #4k
-        cv2.putText(img=result, text='Resolution: 4k, 30fps', org=(0,50), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=3, color=(0, 255, 0),thickness=3)
-        cv2.putText(img=result, text=modeText, org=(0,110), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=3, color=(0, 255, 0),thickness=3)
-        cv2.putText(img=result, text=polarityText, org=(0,170), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=3, color=(0, 255, 0),thickness=3)
-    else: #1080
-        cv2.putText(img=result, text='Resolution: 1080p, 30fps', org=(0,20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=1, color=(0, 255, 0),thickness=1)
-        cv2.putText(img=result, text=modeText, org=(0,40), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=1, color=(0, 255, 0),thickness=1)
-        cv2.putText(img=result, text=polarityText, org=(0,60), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=1, color=(0, 255, 0),thickness=1)
-    
-
-
-    if RECORD:
-        if VERBOSE: print('Frame written')
-        VIDEO_OUT.write(result)
-
+    if VERBOSE: print('Frame displayed')
     cv2.imshow(window, result)
 
 
 def main():
-    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, VIDEO_OUT, VIDEO_OUT_FILENAME, LOOP, RECORD
+    global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, GPIO_KEY
     # Execution continues here
     L_capture = cv2.VideoCapture(VIDEO_LEFT)
     if VERBOSE: print('Reading first video')
     R_capture = cv2.VideoCapture(VIDEO_RIGHT)
     if VERBOSE: print('Reading second video')
-
-    if RECORD:
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (1920, 1080))
-
-    L_success, L_frame = L_capture.read()
-    R_success, R_frame = R_capture.read()
-    
-
-    while(L_success and R_success or LOOP):
+    while(L_capture.isOpened() and R_capture.isOpened()):
         if VERBOSE: print('Capture is open')
-        
+        L_success, L_frame = L_capture.read()
+        R_success, R_frame = R_capture.read()
         if L_success and R_success:
             if VERBOSE: print('Success')
             num_L_rows, num_L_cols, num_ch = np.shape(L_frame)
@@ -301,16 +288,18 @@ def main():
             # Mode select
             if MODE == 1:
                 if VERBOSE: print('Left mono/2D')
-                display('Left eye monoscopic', L_frame[:,:])
+                #display('Left eye monoscopic', L_frame[:,:])
+                display('Opto3D', L_frame[:,:])
             elif MODE == 2:
                 if VERBOSE: print('Right mono/2D')
-                display('Right eye monoscopic', R_frame[:,:])
+                #display('Right eye monoscopic', R_frame[:,:])
+                display('Opto3D', R_frame[:,:])
             elif MODE == 3:
                 if VERBOSE: print('Top Bottom (3D)')
                 top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
             elif MODE == 4:
                 if VERBOSE: print('Interlaced (3D)')
-                row_interleaved(L_frame, R_frame, POLARITY)
+                row_interleaved(L_frame[:,:], R_frame[:,:], POLARITY)
             else:
                 # Previously side-by-side (time permitting)
                 #original(frame[:,0:cols], frame[:,cols:], POLARITY)
@@ -320,35 +309,50 @@ def main():
             R_capture = cv2.VideoCapture(VIDEO_RIGHT)
 
         key = cv2.waitKey(FRAMEDELAY)
-        if key & 0xFF == ord('q'):
+        if key & 0xFF == ord('q'): #Q=113
             break
-        elif key & 0xFF == ord('m'):
+        elif key & 0xFF == ord('m'): #M=109
             cv2.destroyAllWindows()
             if MODE == 4:
                 MODE = 1
             else:
                 MODE += 1
-        elif key & 0xFF == ord('p'):
+        elif key & 0xFF == ord('p'): #P=112
             cv2.destroyAllWindows()
             if POLARITY == 0:
                 POLARITY = 1
             else:
                 POLARITY = 0
-        elif key & 0xFF == ord('i'):
+        elif key & 0xFF == ord('i'): #I=105
             cv2.destroyAllWindows()
             if IMCORR_MODE == 0:
                 IMCORR_MODE = 1
             else:
                 IMCORR_MODE = 0
+        
+        if GPIO_KEY != -1:
+             if GPIO_KEY == 109:
+                 #cv2.destroyAllWindows()
+                 if MODE == 4:
+                     MODE = 1
+                 else:
+                     MODE += 1
+             elif GPIO_KEY == 112:
+                 #cv2.destroyAllWindows()
+                 if POLARITY == 0:
+                     POLARITY = 1
+                 else:
+                     POLARITY = 0
+             elif GPIO_KEY == 105:
+                 if IMCORR_MODE == 0:
+                     IMCORR_MODE = 1
+                 else:
+                     IMCORR_MODE = 0
+             GPIO_KEY = -1
 
-        L_success, L_frame = L_capture.read()
-        R_success, R_frame = R_capture.read()
-
-
+    GPIO.cleanup()
     L_capture.release()
     R_capture.release()
-    if RECORD:
-        VIDEO_OUT.release()
     cv2.destroyAllWindows()
 
 
