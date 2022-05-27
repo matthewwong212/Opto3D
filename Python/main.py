@@ -29,7 +29,7 @@ IMCORR_MODE = 0
 # INPUT STREAMS (Slight disparity)
 VIDEO_LEFT = 'left_v2_1080.mp4'
 VIDEO_RIGHT = 'right_v2_1080.mp4'
-VIDEO_OUT_FILENAME = "default_test"
+VIDEO_OUT_FILENAME = "default_test.avi"
 
 # DEBUG MESSAGES
 VERBOSE = False
@@ -47,7 +47,7 @@ LOOP = True
 RECORD = False
 
 # To tune delay between frames depending on CPU
-FRAMEDELAY = 1
+FRAMEDELAY = 19
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
@@ -182,7 +182,7 @@ def row_interleaved(left_in, right_in, pol):
         # Default polarity
         out[0::2,:, :] = np.array(left_in[0::2,:, :])
         out[1::2,:, :] = np.array(right_in[1::2,:, :])
-    display('Opto3D', out)
+        display('Opto3D', out)
 
 def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
@@ -280,7 +280,12 @@ def main():
 
     if RECORD:
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (1920, 1080))
+        if (int(L_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 3840):  # 4K Video
+            print("in 4k")
+            VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (3840, 2160))
+        elif (int(L_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 1920): # 1080p Video
+            print("in 1080")
+            VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (1920, 1080))
 
     L_success, L_frame = L_capture.read()
     R_success, R_frame = R_capture.read()
