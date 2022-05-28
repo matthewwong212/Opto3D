@@ -169,7 +169,7 @@ def top_bottom(left_in, right_in, pol):
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
     if VERBOSE: print('Ready to display')
-    display('Opto3D', out)
+    display(out)
 
 # Interleave odd rows from left and even rows from right
 def row_interleaved(left_in, right_in, pol):
@@ -182,7 +182,7 @@ def row_interleaved(left_in, right_in, pol):
         # Default polarity
         out[0::2,:, :] = np.array(left_in[0::2,:, :])
         out[1::2,:, :] = np.array(right_in[1::2,:, :])
-        display('Opto3D', out)
+        display( out)
 
 def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
@@ -192,17 +192,18 @@ def original(left_in, right_in, pol):
     else:
         # Default polarity
         out = np.hstack((left_in, right_in))
-    display('Opto3D', out)
+    display( out)
 
 
 # Main display execution
-def display(window, output):
+def display(output):
     global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, VIDEO_OUT, VIDEO_OUT_FILENAME, LOOP, RECORD
 
-    # Fullscreen options for testing
+    # Fullscreen options for testing\
+    cv2.namedWindow("Opto3D", cv2.WINDOW_NORMAL)
     if FULL:
-        cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
-        cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        #cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty("Opto3D", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Result 0 -- Unmodified output (Default)
     # Differing lines for CuPy vs NumPy
@@ -267,7 +268,7 @@ def display(window, output):
         if VERBOSE: print('Frame written')
         VIDEO_OUT.write(result)
 
-    cv2.imshow(window, result)
+    cv2.imshow("Opto3D", result)
 
 
 def main():
@@ -306,10 +307,10 @@ def main():
             # Mode select
             if MODE == 1:
                 if VERBOSE: print('Left mono/2D')
-                display('Opto3D', L_frame[:,:])
+                display(L_frame[:,:])
             elif MODE == 2:
                 if VERBOSE: print('Right mono/2D')
-                display('Opto3D', R_frame[:,:])
+                display(R_frame[:,:])
             elif MODE == 3:
                 if VERBOSE: print('Top Bottom (3D)')
                 top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
