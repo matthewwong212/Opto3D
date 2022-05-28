@@ -182,7 +182,7 @@ def row_interleaved(left_in, right_in, pol):
         # Default polarity
         out[0::2,:, :] = np.array(left_in[0::2,:, :])
         out[1::2,:, :] = np.array(right_in[1::2,:, :])
-        display( out)
+        display(out)
 
 def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
@@ -192,7 +192,7 @@ def original(left_in, right_in, pol):
     else:
         # Default polarity
         out = np.hstack((left_in, right_in))
-    display( out)
+    display(out)
 
 
 # Main display execution
@@ -213,6 +213,7 @@ def display(output):
         np_out = np.uint8(output)
 
     result = np_out
+
     if VERBOSE: print('Attempting to display...')
 
     # Result 1 -- Sepia toned output
@@ -247,7 +248,7 @@ def display(output):
     if IMCORR_MODE==3:
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
-    #overlay
+    # Overlay
     modeArr = ["Original", "Left", "Right", "Top-bottom", "Row Interleaved"]
     modeText = "Mode: " + modeArr[MODE]
     polarityArr = ["Default", "Swapped"]
@@ -282,10 +283,8 @@ def main():
     if RECORD:
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
         if (int(L_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 3840):  # 4K Video
-            print("in 4k")
             VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (3840, 2160))
         elif (int(L_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 1920): # 1080p Video
-            print("in 1080")
             VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (1920, 1080))
 
     L_success, L_frame = L_capture.read()
@@ -301,8 +300,9 @@ def main():
             num_R_rows, num_R_cols, num_ch = np.shape(R_frame)
             
             # Read into CuPY (Comment out block when using NumPy)
-            L_frame = np.asarray(L_frame)
-            R_frame = np.asarray(R_frame)
+            if USE_CUPY:
+            	L_frame = np.asarray(L_frame)
+            	R_frame = np.asarray(R_frame)
             #cols = int(num_cols / 2)
             # Mode select
             if MODE == 1:
@@ -313,7 +313,7 @@ def main():
                 display(R_frame[:,:])
             elif MODE == 3:
                 if VERBOSE: print('Top Bottom (3D)')
-                top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
+                top_bottom(L_frame, R_frame, POLARITY)
             elif MODE == 4:
                 if VERBOSE: print('Interlaced (3D)')
                 row_interleaved(L_frame, R_frame, POLARITY)
