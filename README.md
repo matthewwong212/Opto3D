@@ -16,5 +16,7 @@
 
 * [TX2 (L4T 32.1) & Leopard Imaging Drivers](https://www.dropbox.com/s/akzqk2j8zbfc8ei/IMX334-MIPI_R32.1_TX2_NV_Tri_20190729_Driver_Guide.pdf?dl=0)
 
+* [Problems with Xavier NX & IMX377](https://forums.developer.nvidia.com/t/using-jetson-io-py-doesnt-change-camera-driver-from-imx219-to-imx477/214345/3)
+
 ## Sample References
 * [JetPack Sample Program Locations for TX2](https://docs.nvidia.com/jetson/jetpack/introduction/index.html)
