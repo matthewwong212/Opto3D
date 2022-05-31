@@ -1,4 +1,4 @@
-    # 2022 Computer Engineering Capstone
+# 2022 Computer Engineering Capstone
 # Team: Opto3D / Alcon
 
 # MODE SELECT
@@ -47,7 +47,7 @@ LOOP = True
 RECORD = False
 
 # To tune delay between frames depending on CPU
-FRAMEDELAY = 10
+FRAMEDELAY = 19
 
 # OLD: Previously assumed stereo vision, half resolution, slight disparity
 #  This may still be used by feeding side-by-side back to the beginning
@@ -169,7 +169,7 @@ def top_bottom(left_in, right_in, pol):
         out[0:rows,:] = left_in[::2,:]
         out[rows:,:] = right_in[1::2,:]
     if VERBOSE: print('Ready to display')
-    display(out)
+    display('Opto3D', out)
 
 # Interleave odd rows from left and even rows from right
 def row_interleaved(left_in, right_in, pol):
@@ -182,7 +182,7 @@ def row_interleaved(left_in, right_in, pol):
         # Default polarity
         out[0::2,:, :] = np.array(left_in[0::2,:, :])
         out[1::2,:, :] = np.array(right_in[1::2,:, :])
-        display(out)
+        display('Opto3D', out)
 
 def original(left_in, right_in, pol):
     out = np.zeros_like(np.hstack((left_in, right_in)))
@@ -192,18 +192,17 @@ def original(left_in, right_in, pol):
     else:
         # Default polarity
         out = np.hstack((left_in, right_in))
-    display(out)
+    display('Opto3D', out)
 
 
 # Main display execution
-def display(output):
+def display(window, output):
     global MODE, VERBOSE, VIDEO_LEFT, VIDEO_RIGHT, IMCORR_MODE, POLARITY, SAT_SCALE, FULL, FRAMEDELAY, VIDEO_OUT, VIDEO_OUT_FILENAME, LOOP, RECORD
 
-    # Fullscreen options for testing\
-    #cv2.namedWindow("Opto3D", cv2.WINDOW_NORMAL)
+    # Fullscreen options for testing
     if FULL:
-        cv2.namedWindow("Opto3D", cv2.WND_PROP_FULLSCREEN)
-        cv2.setWindowProperty("Opto3D", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.namedWindow(window, cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty(window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Result 0 -- Unmodified output (Default)
     # Differing lines for CuPy vs NumPy
@@ -213,7 +212,6 @@ def display(output):
         np_out = np.uint8(output)
 
     result = np_out
-
     if VERBOSE: print('Attempting to display...')
 
     # Result 1 -- Sepia toned output
@@ -226,8 +224,10 @@ def display(output):
         else:
             np_out_float = np.float64(output)
         result_2s = cv2.transform(np_out_float, sepia_kernel)
+        #result[np.where(np.asarray(result) > 255)] = 255
         result_2c = np.clip(result_2s, 0, 255)
         result_2a = np.array(result_2c, dtype=np.uint8)
+        # result = np.uint8(result_2a.get())
         if USE_CUPY:
             result = np.uint8(result_2a.get())
         else:
@@ -246,7 +246,7 @@ def display(output):
     if IMCORR_MODE==3:
         result = cv2.convertScaleAbs(result, alpha=CONTRAST_SCALE, beta=BRIGHT_SCALE)
 
-    # Overlay
+    #overlay
     modeArr = ["Original", "Left", "Right", "Top-bottom", "Row Interleaved"]
     modeText = "Mode: " + modeArr[MODE]
     polarityArr = ["Default", "Swapped"]
@@ -267,7 +267,7 @@ def display(output):
         if VERBOSE: print('Frame written')
         VIDEO_OUT.write(result)
 
-    cv2.imshow("Opto3D", result)
+    cv2.imshow(window, result)
 
 
 def main():
@@ -281,8 +281,10 @@ def main():
     if RECORD:
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
         if (int(L_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 3840):  # 4K Video
+            print("in 4k")
             VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (3840, 2160))
         elif (int(L_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 1920): # 1080p Video
+            print("in 1080")
             VIDEO_OUT = cv2.VideoWriter(VIDEO_OUT_FILENAME, fourcc, 30, (1920, 1080))
 
     L_success, L_frame = L_capture.read()
@@ -298,20 +300,19 @@ def main():
             num_R_rows, num_R_cols, num_ch = np.shape(R_frame)
             
             # Read into CuPY (Comment out block when using NumPy)
-            if USE_CUPY:
-            	L_frame = np.asarray(L_frame)
-            	R_frame = np.asarray(R_frame)
+            L_frame = np.asarray(L_frame)
+            R_frame = np.asarray(R_frame)
             #cols = int(num_cols / 2)
             # Mode select
             if MODE == 1:
                 if VERBOSE: print('Left mono/2D')
-                display(L_frame[:,:])
+                display('Opto3D', L_frame[:,:])
             elif MODE == 2:
                 if VERBOSE: print('Right mono/2D')
-                display(R_frame[:,:])
+                display('Opto3D', R_frame[:,:])
             elif MODE == 3:
                 if VERBOSE: print('Top Bottom (3D)')
-                top_bottom(L_frame, R_frame, POLARITY)
+                top_bottom(L_frame[:,:], R_frame[:,:], POLARITY)
             elif MODE == 4:
                 if VERBOSE: print('Interlaced (3D)')
                 row_interleaved(L_frame, R_frame, POLARITY)
