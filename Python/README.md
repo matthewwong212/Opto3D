@@ -2,7 +2,9 @@
 
 ## Prerequisites:
 Python 3.7+
+
 Numpy 1.22.3+
+
 Cupy 10.4+ (Cupy version is specific to corresponding CUDA version)
 
 For functionality on the Xavier NX, run program with ```python3.8``` in place of ```python```, and uncomment line 59: ```sys.path.append('/usr/local/lib/python3.8/site-packages')```
