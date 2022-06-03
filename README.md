@@ -1,5 +1,9 @@
 # Opto3D
 
+[Opto3D.org](https://www.opto3d.org/) For more details.
+
+[Quick demo video](https://www.youtube.com/watch?v=Q3GrGRlpJOA)
+
 View 'Python' directory for main code.
 
 ## References for Multi-Camera
